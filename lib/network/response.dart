@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 
 import '../model/index.dart';
 
+const url = "http://pat.infolab.ecam.be:60818";
+
 class Response<T> {
   final T data;
 
@@ -22,21 +24,47 @@ class ResponseList<T extends Data> {
 
   ResponseList(this.dataList);
 
-  factory ResponseList.fromJson(dynamic json) =>
+  factory ResponseList.fromJson(List<Map<String, dynamic>> json) =>
     ResponseList(
-      (json as List).map((entry) => Data.fromJson(entry)).toList() as List<T>
+      json.map((entry) => Data.fromJson(entry)).toList() as List<T>
     );
 }
 
 Future<ResponseList<T>> fetchDataList<T extends Data>() async {
-  const url = "http://pat.infolab.ecam.be:60818";
   final response = switch (T) {
     InterestPoint => await http.get(Uri.parse("$url/points")),
     Category => await http.get(Uri.parse("$url/categories")),
     _ => throw Exception("Not a defined Data subtype")
   };
-  if (response.statusCode == 200) {
-    return ResponseList<T>.fromJson(jsonDecode(response.body));
+
+  return switch(response.statusCode) {
+    200 => ResponseList<T>.fromJson(jsonDecode(response.body)),
+    _ => throw Exception("Status != 200")
+  };
+}
+
+class ResponseLogin {
+  static String? token;
+
+  static String fromJson(Map<String, dynamic> json) {
+    token = json["token"];
+    return "Token saved";
   }
-  throw Exception("Status != 200");
+}
+
+Future<String?> fetchLogin(String name, String password) async {
+  final response = await http.post(
+    Uri.parse("$url/login"),
+    body: {
+      "username": name,
+      "password": password
+    }
+  );
+
+  return switch(response.statusCode) {
+    200 => ResponseLogin.fromJson(jsonDecode(response.body)),
+    401 => "No user saved with this name",
+    403 => "Wrong password",
+    _ => throw Exception("Status != 200")
+  };
 }
