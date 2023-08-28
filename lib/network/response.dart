@@ -24,9 +24,9 @@ class ResponseList<T extends Data> {
 
   ResponseList(this.dataList);
 
-  factory ResponseList.fromJson(List<Map<String, dynamic>> json) =>
+  factory ResponseList.fromJson(List<dynamic> json) =>
     ResponseList(
-      json.map((entry) => Data.fromJson(entry)).toList() as List<T>
+      json.map((entry) => Data.fromJson(entry) as T).toList()
     );
 }
 
@@ -38,7 +38,7 @@ Future<ResponseList<T>> fetchDataList<T extends Data>() async {
   };
 
   return switch(response.statusCode) {
-    200 => ResponseList<T>.fromJson(jsonDecode(response.body)),
+    200 => ResponseList<T>.fromJson(jsonDecode(response.body) as List<dynamic>),
     _ => throw Exception("Status != 200")
   };
 }
